@@ -2,11 +2,7 @@
   Written by Kaya Celebi, April 2023
 ****************************************************************************************************************************************************************/'''
 
-from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.common.by import By
-import chromedriver_autoinstaller
+from playwright.sync_api import sync_playwright
 from datetime import date, datetime, timedelta
 import numpy as np
 import pandas as pd
@@ -26,22 +22,22 @@ date_format = "%Y-%m-%d"
 	Europe date display vs US date display!
 '''
 
-def ScrapeObjects(objs, deep_copy = False):
-	if type(objs) is _Scrape:
-		objs = [objs]
+def ScrapeObjects(objs, deep_copy=False):
+    if type(objs) is _Scrape:
+        objs = [objs]
 
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=False)
+        context = browser.new_context()
+        page = context.new_page()
 
-	chromedriver_autoinstaller.install() # check if chromedriver is installed correctly and on path
-	driver = webdriver.Chrome()
-	driver.maximize_window()
+        # modifies the objects in-place
+        debug = [obj._scrape_data(page) for obj in tqdm(objs, desc="Scraping Objects")]
+        
+        browser.close()
 
-	# modifies the objects in-place
-	debug = [obj._scrape_data(driver) for obj in tqdm(objs, desc="Scraping Objects")]
-	
-	driver.quit()
-
-	if deep_copy:
-		return objs # returns objs as copy
+    if deep_copy:
+        return objs  # returns objs as copy
 
 class _Scrape:
 
@@ -391,54 +387,30 @@ class _Scrape:
 		return urls
 
 	@staticmethod
-	def _get_results(url, date, driver):
-		results = None
-		try:
-			results = _Scrape._make_url_request(url, driver)
-		except TimeoutException:
-			print(
-				'''TimeoutException, try again and check your internet connection!\n
-				Also possible that no flights exist for your query :('''.replace('\t','')
-			)
-			return -1
+        def _get_results(url, date, page):
+            results = None
+            try:
+                results = _Scrape._make_url_request(url, page)
+            except TimeoutError:
+                print(
+                    '''TimeoutError, try again and check your internet connection!\n
+                    Also possible that no flights exist for your query :('''.replace('\t','')
+                )
+                return -1
 
-		flights = _Scrape._clean_results(results, date)
-		return Flight.dataframe(flights)
-
-	@staticmethod
-	def _clean_results(result, date):
-		res2 = [x.encode("ascii", "ignore").decode().strip() for x in result]
-
-		start = res2.index("Sort by:")+1
-		mid_start = res2.index("Price insights")
-		mid_end = -1
-		try:
-		    mid_end = res2.index("Other departing flights")+1
-		except:
-		    mid_end = res2.index("Other flights")+1
-		end  = [i for i, x in enumerate(res2) if x.endswith('more flights')][0]
-
-		res3 = res2[start:mid_start] + res2[mid_end:end]
-
-		matches = [i for i, x in enumerate(res3) if len(x) > 2 and ((x[-2] != '+' and (x.endswith('PM') or x.endswith('AM')) and ':' in x) or x[-2] == '+')][::2]
-		flights = [Flight(date, res3[matches[i]:matches[i+1]]) for i in range(len(matches)-1)]
-
-		return flights
+            flights = _Scrape._clean_results(results, date)
+            return Flight.dataframe(flights)
 
 	@staticmethod
-	def _make_url_request(url, driver):
-		driver.get(url)
+	def _make_url_request(url, page):
+            page.goto(url)
+            page.wait_for_selector('//body[@id = "yDmH0d"]', timeout=10000)
+            results = _Scrape._get_flight_elements(page)
 
-		# Waiting and initial XPATH cleaning
-		WebDriverWait(driver, timeout = 10).until(lambda d: len(_Scrape._get_flight_elements(d)) > 100)
-		results = _Scrape._get_flight_elements(driver)
-
-		#driver.quit()
-
-		return results
+            return results
 
 	@staticmethod
-	def _get_flight_elements(driver):
-		return driver.find_element(by = By.XPATH, value = '//body[@id = "yDmH0d"]').text.split('\n')
+	def _get_flight_elements(page):
+            return page.inner_text('//body[@id = "yDmH0d"]').split('\n')
 
 Scrape = _Scrape()
