@@ -400,6 +400,26 @@ class _Scrape:
 
         flights = _Scrape._clean_results(results, date)
         return Flight.dataframe(flights)
+    
+    @staticmethod
+    def _clean_results(result, date):
+        res2 = [x.encode("ascii", "ignore").decode().strip() for x in result]
+
+        start = res2.index("Sort by:")+1
+        mid_start = res2.index("Price insights")
+        mid_end = -1
+        try:
+            mid_end = res2.index("Other departing flights")+1
+        except:
+            mid_end = res2.index("Other flights")+1
+        end  = [i for i, x in enumerate(res2) if x.endswith('more flights')][0]
+
+        res3 = res2[start:mid_start] + res2[mid_end:end]
+
+        matches = [i for i, x in enumerate(res3) if len(x) > 2 and ((x[-2] != '+' and (x.endswith('PM') or x.endswith('AM')) and ':' in x) or x[-2] == '+')][::2]
+        flights = [Flight(date, res3[matches[i]:matches[i+1]]) for i in range(len(matches)-1)]
+
+        return flights
 
     @staticmethod
     def _make_url_request(url, page):
