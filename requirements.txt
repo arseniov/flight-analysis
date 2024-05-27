@@ -1,7 +1,6 @@
 tqdm
 numpy
 pandas
-selenium
+playwright
 pytest
 sqlalchemy
-chromedriver-autoinstaller
