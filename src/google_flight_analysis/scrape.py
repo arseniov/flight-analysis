@@ -369,9 +369,27 @@ class _Scrape:
     '''
         Scrape the object. Add support for multiple queries, iterative.
     '''
+    def _accept_cookies(self, page):
+        try:
+            page.wait_for_selector('button[aria-label="Accept all"]', timeout=5000)
+            page.click('button[aria-label="Accept all"]')
+        except Exception as e:
+            print(f"Error accepting cookies: {e}")
+
     def _scrape_data(self, driver):
-        results = [self._get_results(url, self._date[i], driver) for i, url in enumerate(self._url)]
-        self._data = pd.concat(results, ignore_index = True)
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            context = browser.new_context()
+            page = context.new_page()
+
+            # Accept cookies
+            self._accept_cookies(page)
+
+            # Scraping the data
+            results = [self._get_results(url, self._date[i], page) for i, url in enumerate(self._url)]
+            self._data = pd.concat(results, ignore_index=True)
+
+            browser.close()
 
 
     def _make_url(self):
