@@ -40,63 +40,63 @@ Note that the following packages are **absolutely required** as dependencies:
 
 You can easily install this by running either installing the Python package `google-flight-analysis`:
 
-	pip install google-flight-analysis
+    pip install google-flight-analysis
 
 or forking/cloning this repository. Upon doing so, make sure to install the dependencies and update ChromeDriver to match your Google Chrome version.
 
-	pip install -r requirements.txt
+    pip install -r requirements.txt
 
 
 The main scraping function that makes up the backbone of most other functionalities is `Scrape()`. It serves also as a data object, preserving the flight information as well as meta-data from your query. For Python package users, import as follows:
 
-	from google_flight_analysis.scrape import *
+    from google_flight_analysis.scrape import *
 
 For GitHub repository cloners, import as follows from the root of the repository:
 
-	from src.google_flight_analysis.scrape import *
-	#---OR---#
-	import sys
-	sys.path.append('src/google_flight_analysis')
-	from scrape import *
+    from src.google_flight_analysis.scrape import *
+    #---OR---#
+    import sys
+    sys.path.append('src/google_flight_analysis')
+    from scrape import *
 
 
 Here is some quick starter code to accomplish the basic tasks. Find more in the [documentation](https://kcelebi.github.io/flight-analysis/).
 
-	# Keep the dates in format YYYY-mm-dd
-	result = Scrape('JFK', 'IST', '2023-07-20', '2023-08-20') # obtain our scrape object, represents out query
-	result.type # This is in a round-trip format
-	result.origin # ['JFK', 'IST']
-	result.dest # ['IST', 'JFK']
-	result.dates # ['2023-07-20', '2023-08-20']
-	print(result) # get unqueried str representation
+    # Keep the dates in format YYYY-mm-dd
+    result = Scrape('JFK', 'IST', '2023-07-20', '2023-08-20') # obtain our scrape object, represents out query
+    result.type # This is in a round-trip format
+    result.origin # ['JFK', 'IST']
+    result.dest # ['IST', 'JFK']
+    result.dates # ['2023-07-20', '2023-08-20']
+    print(result) # get unqueried str representation
 
 A `Scrape` object represents a Google Flights query to be run. It maintains flights as a sequence of one or more one-way flights which have a origin, destination, and flight date. The above object for a round-trip flight from JFK to IST is a sequence of JFK --> IST, then IST --> JFK. We can obtain the data as follows:
 
-	ScrapeObjects(result) # runs selenium through ChromeDriver, modifies results in-place
-	result.data # returns pandas DF
-	print(result) # get queried representation of result
+    ScrapeObjects(result) # runs selenium through ChromeDriver, modifies results in-place
+    result.data # returns pandas DF
+    print(result) # get queried representation of result
 
 You can also scrape for one-way trips:
 
-	results = Scrape('JFK', 'IST', '2023-08-20')
-	ScrapeObjects(result)
-	result.data #see data
+    results = Scrape('JFK', 'IST', '2023-08-20')
+    ScrapeObjects(result)
+    result.data #see data
 
 You can also scrape chain-trips, which are defined as a sequence of one-way flights that have no direct relation to each other, other than being in chronological order. 
 
-	# chain-trip format: origin, dest, date, origin, dest, date, ...
-	result = Scrape('JFK', 'IST', '2023-08-20', 'RDU', 'LGA', '2023-12-25', 'EWR', 'SFO', '2024-01-20')
-	result.type # chain-trip
-	ScrapeObjects(result)
-	result.data # see data
+    # chain-trip format: origin, dest, date, origin, dest, date, ...
+    result = Scrape('JFK', 'IST', '2023-08-20', 'RDU', 'LGA', '2023-12-25', 'EWR', 'SFO', '2024-01-20')
+    result.type # chain-trip
+    ScrapeObjects(result)
+    result.data # see data
 
 You can also scrape perfect-chains, which are defined as a sequence of one-way flights such that the destination of the previous flight is the origin of the next and the origin of the chain is the final destination of the chain (a cycle).
 
-	# perfect-chain format: origin, date, origin, date, ..., first_origin
-	result = Scrape("JFK", "2023-09-20", "IST", "2023-09-25", "CDG", "2023-10-10", "LHR", "2023-11-01", "JFK")
-	result.type # perfect-chain
-	ScrapeObjects(result)
-	result.data # see data
+    # perfect-chain format: origin, date, origin, date, ..., first_origin
+    result = Scrape("JFK", "2023-09-20", "IST", "2023-09-25", "CDG", "2023-10-10", "LHR", "2023-11-01", "JFK")
+    result.type # perfect-chain
+    ScrapeObjects(result)
+    result.data # see data
 
 You can read more about the different type of trips in the documentation. Scrape objects can be added to one another to create larger queries. This is under the conditions:
 
@@ -134,7 +134,7 @@ All of these functions are clearly documented in the `scraping.py` file.
 - [ ] Algorithm to check over multiple days and return summary
 - [x] Determine caching method: wait for request and cache? periodically cache?
 - [ ] Model for observing change in flight price
-	- Predict how much it'll maybe change
+    - Predict how much it'll maybe change
 - [ ] UI for showing flights that are 'perfect' to constraint / flights that are close to constraints, etc
 - [ ] Caching/storing data, uses predictive model to estimate how good this is
 
